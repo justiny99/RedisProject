@@ -22,8 +22,11 @@ static void die(const char *msg) {
 static int32_t read_full(int fd, char *buf, size_t n) {
     while (n > 0) {
         ssize_t rv = read(fd, buf, n);
-        if (rv <= 0) {
+        if (rv < 0) {
             return -1; // error or unexpected EOF
+        } else if (rv == 0) {
+            errno = EINTR;
+            return -1;
         }
         assert((size_t)rv <= n);
         n -= (size_t)rv;
@@ -42,6 +45,8 @@ static int32_t write_all(int fd, char *buf, size_t n) {
         n -= (size_t)rv;
         buf += rv;
     }
+
+    return 0;
 }
 
 const size_t k_max_msg = 4096;
@@ -76,19 +81,6 @@ static int32_t one_request(int connfd) {
     memcpy(wbuf, &len, 4);
     memcpy(&wbuf[4], reply, len);
     return write_all(connfd, wbuf, 4 + len);
-}
-
-static void do_something(int connfd) {
-    char rbuf[64] = {};
-    ssize_t n = recv(connfd, rbuf, sizeof(rbuf) - 1, 0);
-    if (n < 0) {
-        msg("read() error");
-        return;
-    }
-    printf("client says: %s\n", rbuf);
-
-    char wbuf[] = "world";
-    send(connfd, wbuf, strlen(wbuf), 0);
 }
 
 int main() {
