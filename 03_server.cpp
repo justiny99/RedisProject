@@ -22,11 +22,8 @@ static void die(const char *msg) {
 static int32_t read_full(int fd, char *buf, size_t n) {
     while (n > 0) {
         ssize_t rv = read(fd, buf, n);
-        if (rv < 0) {
+        if (rv <= 0) {
             return -1; // error or unexpected EOF
-        } else if (rv == 0) {
-            errno = EINTR;
-            return -1;
         }
         assert((size_t)rv <= n);
         n -= (size_t)rv;
