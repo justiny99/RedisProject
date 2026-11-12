@@ -1,3 +1,6 @@
+# Binary executables
+bin/
+
 # Prerequisites
 *.d
 
