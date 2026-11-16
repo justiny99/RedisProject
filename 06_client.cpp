@@ -91,6 +91,7 @@ static int32_t read_res(int fd) {
     }
 
     printf("len: %u data: %.*s\n", len, len< 100 ? len : 100, &rbuf[4]);
+    return 0;
 }
 
 
@@ -111,7 +112,8 @@ int main() {
 
     // multiple pipelined reqs
     std::vector<std::string> query_list = {
-        "hello1", "hello2", "hello3", "testing a slightly longer message to see how many event loops it requires to send and receive it"
+        "hello1", "hello2", "hello3", "testing a slightly longer message to see how many event loops it requires to send and receive it",
+        std::string(k_max_msg, 'z'), "hello5"
     };
 
     for (const std::string &s : query_list) {
