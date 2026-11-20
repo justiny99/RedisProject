@@ -1,7 +1,3 @@
-# Binary executables
-bin/*
-!bin/.gitkeep
-
 # Prerequisites
 *.d
 
