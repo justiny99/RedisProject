@@ -156,10 +156,12 @@ static void do_request(std::vector<std::string> &cmd, std::vector<uint8_t> &out)
             return;
         }
         const std::string &val = it->second;
+        std::vector<uint8_t> data;
+        data.assign(val.begin(), val.end());
         uint32_t resp_len = 4 + (uint32_t)val.size();
         buf_append(out, (const uint8_t *)&resp_len, 4);
         buf_append(out, (const uint8_t *)RES_OK, 4);
-        buf_append(out, (const uint8_t *)&val, val.size());
+        buf_append(out, data.data(), data.size());
     } else if (cmd.size() == 3 && cmd[0] == "set") {
         g_data[cmd[1]] = cmd[2];
     } else {
