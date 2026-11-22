@@ -139,34 +139,29 @@ enum {
     RES_NX = 2,     // key not found
 };
 
-struct Response {
-    uint32_t status = 0;
-    std::vector<uint8_t> data;
-};
-
 static std::map<std::string, std::string> g_data;
 
 static void do_request(std::vector<std::string> &cmd, std::vector<uint8_t> &out) {
+    uint32_t len = 4;
+    uint32_t status = RES_OK;
+    std::vector<uint8_t> data;
     if (cmd.size() == 2 && cmd[0] == "get") {
         auto it = g_data.find(cmd[1]);
         if (it == g_data.end()) {
-            uint32_t len = 0;
-            buf_append(out, (const uint8_t *)&len, 4);
-            buf_append(out, (const uint8_t *)RES_NX, 4);
-            return;
-        }
+            status = RES_NX;
+        } else {
         const std::string &val = it->second;
-        std::vector<uint8_t> data;
         data.assign(val.begin(), val.end());
-        uint32_t resp_len = 4 + (uint32_t)val.size();
-        buf_append(out, (const uint8_t *)&resp_len, 4);
-        buf_append(out, (const uint8_t *)RES_OK, 4);
-        buf_append(out, data.data(), data.size());
+        len = 4 + (uint32_t)val.size();
+        }
     } else if (cmd.size() == 3 && cmd[0] == "set") {
         g_data[cmd[1]] = cmd[2];
     } else {
-        buf_append(out, (const uint8_t *)RES_ERR, 4);
+        status = RES_ERR;
     }
+    buf_append(out, (const uint8_t *)&len, 4);
+    buf_append(out, (const uint8_t *)&status, 4);
+    buf_append(out, data.data(), data.size());
 }
 
 static bool try_one_request(Conn *conn) {
@@ -197,7 +192,6 @@ static bool try_one_request(Conn *conn) {
     }
 
     do_request(cmd, conn->outgoing);
-
     buf_consume(conn->incoming, 4 + len);
     return true;
 }
