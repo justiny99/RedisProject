@@ -146,27 +146,25 @@ struct Response {
 
 static std::map<std::string, std::string> g_data;
 
-static void do_request(std::vector<std::string> &cmd, Response &out) {
+static void do_request(std::vector<std::string> &cmd, std::vector<uint8_t> &out) {
     if (cmd.size() == 2 && cmd[0] == "get") {
         auto it = g_data.find(cmd[1]);
         if (it == g_data.end()) {
-            out.status = RES_NX;
+            uint32_t len = 0;
+            buf_append(out, (const uint8_t *)&len, 4);
+            buf_append(out, (const uint8_t *)RES_NX, 4);
             return;
         }
         const std::string &val = it->second;
-        out.data.assign(val.begin(), val.end());
+        uint32_t resp_len = 4 + (uint32_t)val.size();
+        buf_append(out, (const uint8_t *)&resp_len, 4);
+        buf_append(out, (const uint8_t *)RES_OK, 4);
+        buf_append(out, (const uint8_t *)&val, val.size());
     } else if (cmd.size() == 3 && cmd[0] == "set") {
         g_data[cmd[1]] = cmd[2];
     } else {
-        out.status = RES_ERR;
+        buf_append(out, (const uint8_t *)RES_ERR, 4);
     }
-}
-
-static void make_response(const Response &resp, std::vector<uint8_t> &out) {
-    uint32_t resp_len = 4 + (uint32_t)resp.data.size();
-    buf_append(out, (const uint8_t *)&resp_len, 4);
-    buf_append(out, (const uint8_t *)&resp.status, 4);
-    buf_append(out, resp.data.data(), resp.data.size());
 }
 
 static bool try_one_request(Conn *conn) {
@@ -196,9 +194,7 @@ static bool try_one_request(Conn *conn) {
         return false;
     }
 
-    Response resp;
-    do_request(cmd, resp);
-    make_response(resp, conn->outgoing);
+    do_request(cmd, conn->outgoing);
 
     buf_consume(conn->incoming, 4 + len);
     return true;
